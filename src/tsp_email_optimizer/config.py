@@ -14,6 +14,11 @@ load_dotenv()
 class AppConfig:
     openai_api_key: str
     openroute_api_key: str
+    geocoding_provider: str
+    google_geocoding_api_key: str | None
+    google_geocoding_language: str | None
+    google_geocoding_region: str | None
+    google_geocoding_components: str | None
     email_imap_host: str
     email_imap_port: int
     email_smtp_host: str
@@ -35,6 +40,11 @@ class AppConfig:
         return cls(
             openai_api_key=_required("OPENAI_API_KEY"),
             openroute_api_key=_required("OPENROUTESERVICE_API_KEY"),
+            geocoding_provider=os.getenv("GEOCODING_PROVIDER", "ors").strip().lower(),
+            google_geocoding_api_key=_optional("GOOGLE_GEOCODING_API_KEY"),
+            google_geocoding_language=_optional("GOOGLE_GEOCODING_LANGUAGE"),
+            google_geocoding_region=_optional("GOOGLE_GEOCODING_REGION"),
+            google_geocoding_components=_optional("GOOGLE_GEOCODING_COMPONENTS"),
             email_imap_host=_required("EMAIL_IMAP_HOST"),
             email_imap_port=int(os.getenv("EMAIL_IMAP_PORT", "993")),
             email_smtp_host=_required("EMAIL_SMTP_HOST"),

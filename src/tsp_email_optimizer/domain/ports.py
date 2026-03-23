@@ -33,6 +33,11 @@ class RouteOptimizer(Protocol):
         ...
 
 
+class Geocoder(Protocol):
+    def geocode_one(self, address: str) -> tuple[float, float, float | None] | None:
+        ...
+
+
 class TripRepository(Protocol):
     def save_request(self, trip: ExtractedTrip, status: RequestStatus) -> None:
         ...
