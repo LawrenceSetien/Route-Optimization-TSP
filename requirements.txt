@@ -1,0 +1,6 @@
+openai
+requests
+pydantic
+python-dotenv
+folium
+
