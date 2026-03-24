@@ -9,6 +9,7 @@ class ReplyBuilder:
         trip: ExtractedTrip,
         route: OptimizedRoute,
         map_path: str | None = None,
+        google_maps_url: str | None = None,
     ) -> str:
         lines: list[str] = []
         lines.append("Hola,")
@@ -35,6 +36,8 @@ class ReplyBuilder:
             lines.append(f"- Distancia total estimada: {route.total_distance_m / 1000:.2f} km")
         if route.total_duration_s is not None:
             lines.append(f"- Duracion total estimada: {route.total_duration_s / 60:.1f} minutos")
+        if google_maps_url:
+            lines.append(f"- Abrir ruta en Google Maps: {google_maps_url}")
         if map_path:
             lines.append(f"- Mapa generado en: {map_path}")
         if trip.warnings:

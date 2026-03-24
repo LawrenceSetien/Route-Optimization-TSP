@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
+from urllib.parse import urlencode
 from uuid import uuid4
 
-from tsp_email_optimizer.domain.models import RequestStatus
+from tsp_email_optimizer.domain.models import OptimizedRoute, RequestStatus
 from tsp_email_optimizer.domain.ports import (
     EmailInbox,
     EmailReplySender,
@@ -18,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 
 class EmailOptimizationPipeline:
+    _GOOGLE_MAPS_URL_MAX_WAYPOINTS = 9
+    _GOOGLE_MAPS_DIRECTIONS_MAX_STOPS = 9
+
     def __init__(
         self,
         inbox: EmailInbox,
@@ -27,6 +32,7 @@ class EmailOptimizationPipeline:
         repository: TripRepository,
         reply_builder: ReplyBuilder,
         map_renderer: RouteMapRenderer | None = None,
+        attach_map_html: bool = True,
     ) -> None:
         self._inbox = inbox
         self._sender = sender
@@ -35,6 +41,7 @@ class EmailOptimizationPipeline:
         self._repository = repository
         self._reply_builder = reply_builder
         self._map_renderer = map_renderer
+        self._attach_map_html = attach_map_html
 
     def process_next(self) -> bool:
         logger.info("Polling inbox for unread candidate emails.")
@@ -95,12 +102,25 @@ class EmailOptimizationPipeline:
 
             logger.info("Step 6/6 Sending reply email.")
             reply_subject = self._build_reply_subject(email.subject)
+            google_maps_url = self._build_google_maps_directions_url(route)
             reply_body = self._reply_builder.build_success_reply(
                 trip=trip,
                 route=route,
                 map_path=map_path,
+                google_maps_url=google_maps_url,
             )
-            self._sender.reply(original_email=email, subject=reply_subject, body=reply_body)
+            attachments: list[str] = []
+            if map_path:
+                map_file = Path(map_path)
+                if self._attach_map_html and map_file.exists():
+                    attachments.append(map_path)
+
+            self._sender.reply(
+                original_email=email,
+                subject=reply_subject,
+                body=reply_body,
+                attachment_paths=attachments or None,
+            )
 
             self._repository.update_request_status(request_id, RequestStatus.REPLIED)
             self._inbox.mark_processed(email.uid)
@@ -152,4 +172,48 @@ class EmailOptimizationPipeline:
         if original_subject.lower().startswith("re:"):
             return original_subject
         return f"Re: {original_subject}"
+
+    @staticmethod
+    def _build_google_maps_directions_url(route: OptimizedRoute) -> str | None:
+        stops = route.ordered_stops
+        if not stops:
+            return None
+        if len(stops) > EmailOptimizationPipeline._GOOGLE_MAPS_DIRECTIONS_MAX_STOPS:
+            logger.info(
+                "Skipping Google Maps URL generation due to stop count=%d (max supported in email: 9).",
+                len(stops),
+            )
+            return None
+
+        if route.start_location is not None:
+            origin = route.start_location
+            destination = route.start_location
+            waypoint_stops = stops
+        else:
+            origin = stops[0]
+            destination = stops[-1]
+            waypoint_stops = stops[1:-1]
+
+        if len(waypoint_stops) > EmailOptimizationPipeline._GOOGLE_MAPS_URL_MAX_WAYPOINTS:
+            logger.warning(
+                "Too many waypoints for Google Maps URL; truncating from=%d to=%d",
+                len(waypoint_stops),
+                EmailOptimizationPipeline._GOOGLE_MAPS_URL_MAX_WAYPOINTS,
+            )
+            waypoint_stops = waypoint_stops[
+                : EmailOptimizationPipeline._GOOGLE_MAPS_URL_MAX_WAYPOINTS
+            ]
+
+        params = {
+            "api": "1",
+            "origin": f"{origin.lat:.6f},{origin.lon:.6f}",
+            "destination": f"{destination.lat:.6f},{destination.lon:.6f}",
+            "travelmode": "driving",
+        }
+        if waypoint_stops:
+            params["waypoints"] = "|".join(
+                f"{stop.lat:.6f},{stop.lon:.6f}" for stop in waypoint_stops
+            )
+
+        return "https://www.google.com/maps/dir/?" + urlencode(params, safe="|,")
 

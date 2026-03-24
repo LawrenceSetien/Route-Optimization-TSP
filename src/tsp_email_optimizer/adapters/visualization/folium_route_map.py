@@ -52,7 +52,17 @@ class FoliumRouteMapRenderer:
                 location=[stop.lat, stop.lon],
                 popup=popup,
                 tooltip=f"{optimized_index}. {stop.address}",
-                icon=folium.Icon(color="blue"),
+                icon=folium.DivIcon(
+                    html=(
+                        f"<div style='"
+                        "width: 26px; height: 26px; border-radius: 50%; "
+                        "background: #0d6efd; color: white; border: 2px solid white; "
+                        "box-shadow: 0 0 4px rgba(0, 0, 0, 0.35); "
+                        "text-align: center; line-height: 22px; font-size: 12px; "
+                        "font-weight: 700;'>"
+                        f"{optimized_index}</div>"
+                    )
+                ),
             ).add_to(fmap)
 
         polyline_points = self._get_driving_geometry(points)
@@ -125,4 +135,5 @@ class FoliumRouteMapRenderer:
             return []
         # ORS returns [lon, lat], Folium expects [lat, lon].
         return [[float(coord[1]), float(coord[0])] for coord in coords if len(coord) >= 2]
+
 

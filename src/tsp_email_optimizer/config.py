@@ -34,6 +34,7 @@ class AppConfig:
     max_extraction_retries: int
     map_enabled: bool
     map_output_path: str
+    map_attach_html: bool
 
     @classmethod
     def from_env(cls) -> "AppConfig":
@@ -60,6 +61,7 @@ class AppConfig:
             max_extraction_retries=int(os.getenv("MAX_EXTRACTION_RETRIES", "2")),
             map_enabled=_as_bool(os.getenv("MAP_ENABLED"), default=True),
             map_output_path=os.getenv("MAP_OUTPUT_PATH", "./data/maps"),
+            map_attach_html=_as_bool(os.getenv("MAP_ATTACH_HTML"), default=True),
         )
 
 

@@ -97,6 +97,7 @@ def build_pipeline(config: AppConfig) -> EmailOptimizationPipeline:
         repository=repository,
         reply_builder=reply_builder,
         map_renderer=map_renderer,
+        attach_map_html=config.map_attach_html,
     )
 
 
@@ -131,7 +132,7 @@ def main() -> None:
     logger.info("Starting app log_level=%s once=%s", args.log_level, args.once)
     config = AppConfig.from_env()
     logger.info(
-        "Loaded config imap_host=%r smtp_host=%r timezone=%r subject_filter=%r csv_output=%r geocoding_provider=%r map_enabled=%s map_output=%r",
+        "Loaded config imap_host=%r smtp_host=%r timezone=%r subject_filter=%r csv_output=%r geocoding_provider=%r map_enabled=%s map_output=%r map_attach_html=%s",
         config.email_imap_host,
         config.email_smtp_host,
         config.app_timezone,
@@ -140,6 +141,7 @@ def main() -> None:
         config.geocoding_provider,
         config.map_enabled,
         config.map_output_path,
+        config.map_attach_html,
     )
     logger.info("IMAP unread scan limit=%d", config.email_unread_scan_limit)
     pipeline = build_pipeline(config)

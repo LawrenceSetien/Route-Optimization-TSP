@@ -19,7 +19,13 @@ class EmailInbox(Protocol):
 
 
 class EmailReplySender(Protocol):
-    def reply(self, original_email: EmailMessage, subject: str, body: str) -> None:
+    def reply(
+        self,
+        original_email: EmailMessage,
+        subject: str,
+        body: str,
+        attachment_paths: list[str] | None = None,
+    ) -> None:
         ...
 
 
